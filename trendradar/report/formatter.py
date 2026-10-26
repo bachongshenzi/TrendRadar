@@ -79,6 +79,14 @@ def format_title_for_platform(
         if title_data["count"] > 1:
             result += f" <font color='green'>({title_data['count']}次)</font>"
 
+        # 跨平台同题合并：副行展示同样报道的其他来源
+        extra_sources = title_data.get("extra_sources")
+        if extra_sources:
+            sources_text = "、".join(extra_sources)
+            if len(extra_sources) > 1:
+                sources_text += f" 等 {len(extra_sources) + 1} 家"
+            result += f"\n     <font color='grey'>↳ 同样报道：{sources_text}</font>"
+
         return result
 
     elif platform == "dingtalk":

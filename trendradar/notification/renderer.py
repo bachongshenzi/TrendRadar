@@ -5,6 +5,8 @@
 提供多平台通知内容渲染功能，生成格式化的推送消息
 """
 
+import re
+import difflib
 from datetime import datetime
 from typing import Dict, List, Optional, Callable
 
@@ -13,6 +15,120 @@ from trendradar.report.formatter import format_title_for_platform
 
 # 默认区域顺序
 DEFAULT_REGION_ORDER = ["hotlist", "rss", "new_items", "standalone", "ai_analysis"]
+
+
+# ==================== 跨平台同题合并 ====================
+
+# 标题归一化：只保留 数字/小写字母/中文/日文假名，标点、空白、emoji 全部剔除
+_DEDUP_KEEP_RE = re.compile(r"[^0-9a-z\u4e00-\u9fff\u3040-\u30ff]+")
+# 常见电讯前缀：「10月24日电，」「据报」「据悉」「报道：」等，去掉后提升同题命中率
+_DEDUP_PREFIX_RE = re.compile(
+    r"^(\d{1,2}月\d{1,2}日[电讯]?|据报|据悉|据消息|报道|媒体|外媒|快讯|消息|独家|重磅|官方)[，,:\s：]*"
+)
+
+# 公共前缀长度达到该阈值即判定为同题（跨平台改写标题时头部实体通常一致）
+_DEDUP_PREFIX_HIT = 9
+# 整体相似度阈值（长度接近时启用，兜住中间改写的情况）
+_DEDUP_RATIO_HIT = 0.85
+
+
+def _normalize_title_for_dedup(title: str) -> str:
+    """标题归一化：用于跨平台同题判重
+
+    规则：转小写 → 去常见电讯前缀 → 只保留 数字/字母/中文/假名（标点空白全清）
+
+    Args:
+        title: 原始标题
+
+    Returns:
+        归一化后的判重键
+    """
+    if not isinstance(title, str):
+        title = str(title)
+    t = title.lower()
+    t = _DEDUP_PREFIX_RE.sub("", t)
+    t = _DEDUP_KEEP_RE.sub("", t)
+    return t
+
+
+def _is_same_story(key1: str, key2: str) -> bool:
+    """判断两个归一化标题是否为同一件事
+
+    三条判据（依次放宽）：
+    1. 归一化后完全相同
+    2. 公共前缀 >= _DEDUP_PREFIX_HIT（跨平台转载时主语/实体通常写在最前）
+    3. 长度接近时整体相似度 >= _DEDUP_RATIO_HIT
+
+    Args:
+        key1: 已归一化的标题键
+        key2: 已归一化的标题键
+
+    Returns:
+        True 表示判定为同题
+    """
+    if not key1 or not key2:
+        return False
+    if key1 == key2:
+        return True
+
+    short, long_ = (key1, key2) if len(key1) <= len(key2) else (key2, key1)
+    common = 0
+    for ch1, ch2 in zip(short, long_):
+        if ch1 != ch2:
+            break
+        common += 1
+    if common >= _DEDUP_PREFIX_HIT:
+        return True
+
+    # 长度差超过 50% 视为不同粒度（简讯 vs 深度稿），不做相似度合并
+    if abs(len(key1) - len(key2)) <= len(long_) * 0.5:
+        if difflib.SequenceMatcher(None, key1, key2).ratio() >= _DEDUP_RATIO_HIT:
+            return True
+
+    return False
+
+
+def merge_duplicate_titles(titles: List[Dict]) -> List[Dict]:
+    """跨平台同题合并：相同标题只保留一条，其余来源挂到 extra_sources 字段
+
+    仅在推送渲染阶段调用，不影响数据库存储、AI 分析和 HTML 报告。
+    合并发生在每个关键词组内部；同一条新闻命中多个关键词组时，各组仍会各自展示。
+
+    Args:
+        titles: 同一关键词组内的标题数据列表
+
+    Returns:
+        合并后的列表；被合并的主条目字典带 extra_sources（其他来源名列表），
+        无重复的条目不含该字段
+    """
+    if not titles:
+        return titles
+
+    merged: List[Dict] = []
+    keys: List[str] = []
+
+    for title_data in titles:
+        key = _normalize_title_for_dedup(title_data.get("title", ""))
+        hit_index = None
+        if key:
+            for idx, existing_key in enumerate(keys):
+                if _is_same_story(key, existing_key):
+                    hit_index = idx
+                    break
+
+        if hit_index is not None:
+            main = merged[hit_index]
+            extra_sources = main.setdefault("extra_sources", [])
+            source_name = title_data.get("source_name", "")
+            if source_name and source_name not in extra_sources:
+                extra_sources.append(source_name)
+            # 累计出现次数，让 (N次) 反映跨平台报道热度
+            main["count"] = main.get("count", 1) + title_data.get("count", 1)
+        else:
+            merged.append(dict(title_data))
+            keys.append(key)
+
+    return merged
 
 
 def render_feishu_content(
@@ -63,13 +179,15 @@ def render_feishu_content(
             else:
                 stats_content += f"📌 {sequence_display} **{word}** : {count} 条\n\n"
 
-            for j, title_data in enumerate(stat["titles"], 1):
+            # 跨平台同题合并：相同标题只展示一条，其余来源以副行标注
+            merged_titles = merge_duplicate_titles(stat["titles"])
+            for j, title_data in enumerate(merged_titles, 1):
                 formatted_title = format_title_for_platform(
                     "feishu", title_data, show_source=True
                 )
                 stats_content += f"  {j}. {formatted_title}\n"
 
-                if j < len(stat["titles"]):
+                if j < len(merged_titles):
                     stats_content += "\n"
 
             if i < len(report_data["stats"]) - 1:
@@ -211,7 +329,7 @@ def render_dingtalk_content(
                     stats_content += "\n"
 
             if i < len(report_data["stats"]) - 1:
-                stats_content += "\n---\n\n"
+                stats_content += f"\n---\n\n"
 
     # 生成新增新闻部分
     new_titles_content = ""
@@ -281,7 +399,6 @@ def render_dingtalk_content(
     return text_content
 
 
-
 # === RSS 内容渲染辅助函数（用于合并推送） ===
 
 def _render_rss_section_feishu(rss_items: list, separator: str = "---") -> str:
@@ -318,9 +435,6 @@ def _render_rss_section_feishu(rss_items: list, separator: str = "---") -> str:
                 text_content += f" <font color='grey'>- {published_at}</font>"
 
             text_content += "\n"
-
-            if i < len(items):
-                text_content += "\n"
 
         text_content += "\n"
 

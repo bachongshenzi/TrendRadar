@@ -67,14 +67,8 @@ platforms:
                                         # 如果你自行部署了 newsnow，填入你的地址，如: https://your-domain.com/api/s
   sources:
       # === 综合新闻媒体类 ===
-    - id: "toutiao"
-      name: "今日头条"
-    - id: "baidu"
-      name: "百度热搜"
     - id: "thepaper"
       name: "澎湃新闻"
-    - id: "ifeng"
-      name: "凤凰网"
     - id: "cankaoxiaoxi"
       name: "参考消息"
     - id: "sputniknewscn"
@@ -87,72 +81,26 @@ platforms:
       name: "靠谱新闻"
     - id: "tencent-hot"
       name: "腾讯新闻 综合早报"
-      #=== 财经投资类 ===
-    - id: "wallstreetcn-hot"
-      name: "华尔街见闻 最热"
+      #=== 财经投资类（只留快讯/电报，评论型栏目已剔除）===
     - id: "wallstreetcn-quick"
       name: "华尔街见闻 快讯"
     - id: "wallstreetcn-news"
       name: "华尔街见闻 最新"
     - id: "cls-telegraph"
       name: "财联社 电报"
-    - id: "cls-hot"
-      name: "财联社 热门"
-    - id: "cls-depth"
-      name: "财联社 深度"
     - id: "fastbull-express"
       name: "法布财经 快讯"
-    - id: "fastbull-news"
-      name: "法布财经 头条"
-    - id: "gelonghui"
-      name: "格隆汇"
-    - id: "xueqiu"
-      name: "雪球"
     - id: "jin10"
       name: "金十数据"
-      #=== 社交/短视频/娱乐类 ===
-    - id: "weibo"
-      name: "微博"
-    - id: "douyin"
-      name: "抖音"
-    - id: "bilibili-hot-search"
-      name: "哔哩哔哩热搜"
-    - id: "tieba"
-      name: "百度贴吧"
-    - id: "zhihu"
-      name: "知乎"
-    - id: "hupu"
-      name: "虎扑"
-    - id: "douban"
-      name: "豆瓣"
-    - id: "qqvideo-tv-hotsearch"
-      name: "腾讯视频热搜榜"
-    - id: "iqiyi-hot-ranklist"
-      name: "爱奇艺热播榜"
-      #=== 科技类平台 ===
+      #=== 科技类平台（只留产品硬新闻与技术资讯）===
     - id: "ithome"
       name: "IT之家"
-    - id: "juejin"
-      name: "稀土掘金"
-    - id: "github"
-      name: "GitHub"
-    - id: "hackernews"
-      name: "Hacker News"
     - id: "solidot"
       name: "Solidot"
-    - id: "pcbeta"
-      name: "远景论坛"
-    - id: "sspai"
-      name: "少数派"
-    - id: "producthunt"
-      name: "ProductHunt"
-    - id: "coolapk"
-      name: "酷安"
-      #=== 其他/工具类 ===
-    - id: "freebuf"
-      name: "freebuf网络安全"
-    - id: "steam"
-      name: "steam"
+    - id: "hackernews"
+      name: "Hacker News"
+    - id: "github"
+      name: "GitHub"
 
 # ===============================================================
 # 3. 数据源 - RSS 订阅
@@ -297,7 +245,7 @@ display:
   # 独立展示区：将指定平台/RSS 完整展示，不受关键词过滤
   # 推送展示由 regions.standalone 控制，AI 分析由 ai_analysis.include_standalone 控制
   standalone:
-    platforms: ["zhihu", "wallstreetcn-hot"]     # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
+    platforms: ["thepaper"]            # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
     rss_feeds: []                                # RSS 源 ID 列表（如 ["hacker-news"]）
     max_items: 20                                # 每个源最多展示条数（0=不限制）
 

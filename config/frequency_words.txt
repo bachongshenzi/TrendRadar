@@ -24,6 +24,10 @@
 
 [GLOBAL_FILTER]
 震惊
+如何评价
+怎么算
+一文读懂
+手把手教你
 
 
 # ───────────────────────────────────────────────────────────────
@@ -46,12 +50,11 @@
 央行
 证监会
 财政部
-外汇
 人民币
 降准
-/\bLPR\b/
+/LPR/
 社融
-/\bA股\b/
+/A股/
 港股
 出口管制
 反倾销
@@ -59,9 +62,6 @@
 国常会
 十五五
 经济工作会议
-!美国务院
-!美国商务部
-!美国外交部
 
 # 美国政治与政策：白宫、国会、联储、制裁（取代原 [北美] 裸词组）
 [美国政经]
@@ -69,7 +69,7 @@
 白宫
 特朗普
 拜登
-国会
+美国国会
 参议院
 众议院
 美联储
@@ -81,7 +81,7 @@
 制裁
 关税
 中期选举
-总统大选
+美国大选
 加拿大
 
 # 国际地缘：俄乌、中东、朝鲜半岛、台海（合并原俄罗斯/东亚）
@@ -115,17 +115,18 @@
 降息
 加息
 通胀
-/\bCPI\b/
+/CPI/
 鲍威尔
 非农
 衰退
 黄金
 金价
-/\bXAU\b/
+/XAU/
 原油
 油价
 美债
 美元
+汇率
 贸易战
 美股
 国债收益率
@@ -151,15 +152,15 @@
 # AI 前沿：合并原 AI相关/OpenAI/Claude/DeepSeek/国产开源模型
 [AI 前沿]
 @10
-/\bOpenAI\b|\bChatGPT\b|\bSora\b|\bDALL-E\b|\bSam Altman\b|\bGreg Brockman\b/
-/\bAnthropic\b|\bClaude\b|\bDario Amodei\b/
-/深度求索|幻方量化|梁文锋|\bDeepSeek\b/
-/qwen|通义千问|minimax|\bglm\b|智谱|月之暗面|Kimi|豆包|文心一言/
+/OpenAI|ChatGPT|Sora|DALL-E|\bSam Altman\b|\bGreg Brockman\b/
+/Anthropic|Claude|\bDario Amodei\b/
+/深度求索|幻方量化|梁文锋|DeepSeek/
+/qwen|通义千问|minimax|glm|智谱|月之暗面|Kimi|豆包|文心一言/
 大模型
 人工智能
-/\bAGI\b/
+/AGI/
 多模态
-/\bGPT\b/
+/GPT/
 
 # 半导体：合并原 芯片 + 英伟达/AMD
 [半导体]
@@ -176,18 +177,18 @@
 海力士
 寒武纪
 /骁龙|联发科|天玑/
-/英特尔|\bIntel\b/
-/英伟达|黄仁勋|\bNVIDIA\b|\bGeForce\b|\bRTX\b|\bCUDA\b|\bJensen Huang\b/
-/苏姿丰|锐龙|霄龙|\bAMD\b|\bRyzen\b|\bEPYC\b|\bRadeon\b|\bLisa Su\b/
+/英特尔|Intel/
+/英伟达|黄仁勋|NVIDIA|GeForce|RTX|CUDA|\bJensen Huang\b/
+/苏姿丰|锐龙|霄龙|AMD|Ryzen|EPYC|Radeon|\bLisa Su\b/
 
 # 中国科技大厂：合并原 华为/腾讯/字节/京东/大疆
 [中国科技大厂]
 @10
-/华为|任正非|余承东|鸿蒙|海思|昇腾|鲲鹏|\bHUAWEI\b|\bHarmonyOS\b|\bHiSilicon\b/
-/腾讯|鹅厂|马化腾|微信|QQ|天美|阅文集团|微众银行|\bTencent\b|\bPony Ma\b|\bWeChat\b|\bLightSpeed\b|\bWeBank\b/
-/字节|张一鸣|梁汝波|抖音|\bByteDance\b|\bTikTok\b|\bDouyin\b|\bLark\b|\bCapCut\b/
-/京东|刘强东|\bJD\b|\bJingdong\b/
-/大疆|汪滔|灵眸|如影|\bDJI\b|\bRoboMaster\b|\bMavic\b|\bZenmuse\b/
+/华为|任正非|余承东|鸿蒙|海思|昇腾|鲲鹏|HUAWEI|HarmonyOS|HiSilicon/
+/腾讯|鹅厂|马化腾|微信|QQ|天美|阅文集团|微众银行|Tencent|\bPony Ma\b|WeChat|LightSpeed|WeBank/
+/字节|张一鸣|梁汝波|抖音|ByteDance|TikTok|Douyin|Lark|CapCut/
+/京东|刘强东|\bJD\b|Jingdong/
+/大疆|汪滔|灵眸|如影|DJI|RoboMaster|Mavic|Zenmuse/
 小米
 雷军
 阿里
@@ -201,18 +202,18 @@
 # 全球科技大厂：合并原 微软/谷歌/苹果 + 特斯拉
 [全球科技大厂]
 @10
-/微软|\bMicrosoft\b|\bWindows\b|\bAzure\b|\bSatya Nadella\b|\bCopilot\b/
-/谷歌|皮查伊|安卓|油管|\bGoogle\b|\bAlphabet\b|\bAndroid\b|\bChrome\b|\bYouTube\b|\bGemini\b|\bDeepMind\b|\bWaymo\b/
-/库克|\biPhone\b|\biPad\b|\bMacBook\b|\biOS\b|\bVision Pro\b|\bAirPods\b|\bApple\b|\bTim Cook\b/
-/特斯拉|马斯克|\bTesla\b|\bElon Musk\b|\bCybertruck\b|\bModel 3\b|\bModel Y\b|\bModel S\b|\bModel X\b|\bFSD\b/
-/扎克伯格|\bMeta\b|\bFacebook\b/
-/三星|\bSamsung\b/
-/亚马逊|\bAmazon\b|\bAWS\b/
+/微软|Microsoft|Windows|Azure|\bSatya Nadella\b|Copilot/
+/谷歌|皮查伊|安卓|油管|Google|Alphabet|Android|Chrome|YouTube|Gemini|DeepMind|Waymo/
+/库克|iPhone|iPad|MacBook|iOS|Vision Pro|AirPods|Apple|Tim Cook|苹果/
+/特斯拉|马斯克|Tesla|\bElon Musk\b|Cybertruck|\bModel 3\b|\bModel Y\b|\bModel S\b|\bModel X\b|FSD/
+/扎克伯格|Meta|Facebook/
+/三星|Samsung/
+/亚马逊|Amazon|AWS/
 
 # 机器人与智驾：合并原 宇树/智元/众擎/机器人/自动驾驶
 [机器人与智驾]
 @10
-/宇树|王兴兴|\bUnitree\b/
+/宇树|王兴兴|Unitree/
 /智元|灵犀|稚晖君|彭志辉|AgiBot/
 /众擎|EngineAI|赵同阳/
 机器人
@@ -220,12 +221,12 @@
 具身智能
 人形机器人
 /自动驾驶|无人驾驶|智驾/
-/\bOptimus\b/
+/Optimus/
 
 # 新能源与能源：合并原 比亚迪/光伏/水电/核能/能源
 [新能源与能源]
 @10
-/比亚迪|王传福|方程豹|腾势|仰望|弗迪|刀片电池|云辇|\bBYD\b|\bDenza\b|\bYangwang\b/
+/比亚迪|王传福|方程豹|腾势|仰望|弗迪|刀片电池|云辇|BYD|Denza|Yangwang/
 光伏
 太阳能
 /水电|雅鲁藏布江/
@@ -262,23 +263,7 @@
 开源
 程序员
 开发者
-数码
-评测
-新品
-发布会
-/\bGitHub\b/
-!华为
-!苹果
-!微软
-!谷歌
-!英伟达
-!特斯拉
-!比亚迪
-!OpenAI
-!Claude
-!DeepSeek
-!腾讯
-!字节
+/GitHub/
 
 
 # ══════════════════════════════════════════════════════════════
