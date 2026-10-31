@@ -239,6 +239,20 @@ def load_frequency_words(
                     "max_count": group_max_count,
                 }
             )
+        elif group_alias:
+            # 兜底组：只写了 [组名] 和 @N、没有任何关键词。
+            # 用于「不过滤、只分类」模式——收留未命中以上任何一组的新闻，
+            # 由 analyzer 在归组时最后处理，并强制排在推送末尾。
+            processed_groups.append(
+                {
+                    "required": [],
+                    "normal": [],
+                    "group_key": f"__fallback__{group_alias}",
+                    "display_name": group_alias,
+                    "max_count": group_max_count,
+                    "is_fallback": True,
+                }
+            )
 
     return processed_groups, filter_words, global_filters
 

@@ -152,6 +152,14 @@ def count_word_frequency(
         word_groups = [{"required": [], "normal": [], "group_key": "全部新闻"}]
         filter_words = []  # 清空过滤词，显示所有新闻
 
+    # 兜底组：词表里写了「[组名] + @N、无任何关键词」的组。
+    # 存在兜底组时，未命中任何分组的新闻不再丢弃，而是归入该组并排在末尾。
+    fallback_group_key = None
+    for _g in word_groups:
+        if _g.get("is_fallback"):
+            fallback_group_key = _g["group_key"]
+            break
+
     is_first_today = is_first_crawl_func()
 
     # 确定处理的数据源和新增标记逻辑
@@ -239,7 +247,8 @@ def count_word_frequency(
                 title, word_groups, filter_words, global_filters
             )
 
-            if not matches_frequency_words:
+            # 有兜底组时不丢弃未命中的新闻，交给下面的兜底分支接住
+            if not matches_frequency_words and fallback_group_key is None:
                 continue
 
             # 如果是增量模式或 current 模式第一次，统计匹配的新增新闻数量
@@ -254,12 +263,21 @@ def count_word_frequency(
 
             # 找到匹配的词组（防御性转换确保类型安全）
             title_lower = str(title).lower() if not isinstance(title, str) else title.lower()
+            matched_normal_group = False  # 是否已命中普通分组（用于兜底判断）
             for group in word_groups:
                 required_words = group["required"]
                 normal_words = group["normal"]
 
+                # 兜底组：仅当没有命中任何普通分组时才收留，避免重复计入
+                if group.get("is_fallback"):
+                    if matched_normal_group:
+                        continue
+                    group_key = group["group_key"]
+                    word_stats[group_key]["count"] += 1
+                    if source_id not in word_stats[group_key]["titles"]:
+                        word_stats[group_key]["titles"][source_id] = []
                 # 如果是"全部新闻"模式，所有标题都匹配第一个（唯一的）词组
-                if len(word_groups) == 1 and word_groups[0]["group_key"] == "全部新闻":
+                elif len(word_groups) == 1 and word_groups[0]["group_key"] == "全部新闻":
                     group_key = group["group_key"]
                     word_stats[group_key]["count"] += 1
                     if source_id not in word_stats[group_key]["titles"]:
@@ -286,6 +304,7 @@ def count_word_frequency(
                     word_stats[group_key]["count"] += 1
                     if source_id not in word_stats[group_key]["titles"]:
                         word_stats[group_key]["titles"][source_id] = []
+                    matched_normal_group = True
 
                 first_time = ""
                 last_time = ""
@@ -471,16 +490,23 @@ def count_word_frequency(
                     if total_titles > 0
                     else 0
                 ),
+                # 兜底组标记：排序时强制沉到末尾
+                "is_fallback_group": fallback_group_key is not None
+                and group_key == fallback_group_key,
             }
         )
 
-    # 根据配置选择排序优先级
+    # 根据配置选择排序优先级（兜底组永远沉到末尾，不参与按条数抢位）
     if sort_by_position_first:
         # 先按配置位置，再按热点条数
-        stats.sort(key=lambda x: (x["position"], -x["count"]))
+        stats.sort(
+            key=lambda x: (x.get("is_fallback_group", False), x["position"], -x["count"])
+        )
     else:
         # 先按热点条数，再按配置位置（原逻辑）
-        stats.sort(key=lambda x: (-x["count"], x["position"]))
+        stats.sort(
+            key=lambda x: (x.get("is_fallback_group", False), -x["count"], x["position"])
+        )
 
     # 打印过滤后的匹配新闻数
     matched_news_count = sum(len(stat["titles"]) for stat in stats if stat["count"] > 0)
@@ -558,6 +584,13 @@ def count_rss_frequency(
             print("[RSS] 频率词配置为空，将显示所有 RSS 条目")
         word_groups = [{"required": [], "normal": [], "group_key": "全部 RSS"}]
         filter_words = []
+
+    # 兜底组（与热榜分支保持一致）：未命中任何分组的 RSS 条目归到这里
+    fallback_group_key = None
+    for _g in word_groups:
+        if _g.get("is_fallback"):
+            fallback_group_key = _g["group_key"]
+            break
 
     # 创建新增条目的 URL 集合，用于快速查找
     new_urls = set()
@@ -694,13 +727,19 @@ def count_rss_frequency(
             "position": group_key_to_position.get(group_key, 999),
             "titles": sorted_titles,
             "percentage": round(data["count"] / total_items * 100, 2) if total_items > 0 else 0,
+            # 兜底组标记：排序时强制沉到末尾
+            "is_fallback_group": fallback_group_key is not None and group_key == fallback_group_key,
         })
 
-    # 排序
+    # 排序（兜底组永远沉到末尾，不参与按条数抢位）
     if sort_by_position_first:
-        stats.sort(key=lambda x: (x["position"], -x["count"]))
+        stats.sort(
+            key=lambda x: (x.get("is_fallback_group", False), x["position"], -x["count"])
+        )
     else:
-        stats.sort(key=lambda x: (-x["count"], x["position"]))
+        stats.sort(
+            key=lambda x: (x.get("is_fallback_group", False), -x["count"], x["position"])
+        )
 
     matched_count = sum(stat["count"] for stat in stats)
     if not quiet:

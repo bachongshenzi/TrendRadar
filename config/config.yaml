@@ -166,6 +166,26 @@ rss:
       name: "彭博社 政治"
       url: "https://www.bloomberg.com/feeds/politics/news.rss"
 
+    # ── 以下两个源 2026-10-31 实测可用（当天更新，非僵尸源）─────────────
+    # 注意：不进 display.standalone.rss_feeds，只走关键词过滤。
+    #       独立展示区已有 7 源 × 12 条 = 84 条，再加会进一步拉长推送。
+    # 界面新闻：综合财经，含能源/核电/重大工程/地方项目类硬新闻
+    - id: "jiemian"
+      name: "界面新闻"
+      url: "https://a.jiemian.com/index.php?m=Article&a=rss"
+
+    # 华尔街见闻：财经快讯，分钟级更新，纯事实无评论
+    - id: "wallstreetcn-feed"
+      name: "华尔街见闻"
+      url: "https://dedicated.wallstreetcn.com/rss.xml"
+
+    # ⚠️ 已实测不可用的源（2026-10-31 验证，勿再添加）：
+    #   人民网 RSS (people.com.cn/rss/*)：返回 200 但 pubDate 卡在 2025-06-05
+    #   新华网 RSS (news.cn/*/news_*.xml)：pubDate 卡在 2022-12-14
+    #   中新网 it/mil/scrollnews 频道：无条目
+    #   36氪 feed / 观察者网 / 联合早报 / 纽约时报中文网 / RSSHub 公共实例 / feedx 镜像：均不通
+    #   国防部、国家航天局、科技日报、环球网、中国军网：无 RSS 输出
+
     - id: "ruanyifeng"
       name: "阮一峰的网络日志"
       url: "http://www.ruanyifeng.com/blog/atom.xml"
@@ -274,7 +294,7 @@ display:
                                       # 注：热点词汇统计中的新增标记🆕不受此配置影响
 
     rss: true                         # RSS 订阅区域（true=显示并分析, false=隐藏并跳过分析）
-    standalone: true                  # 独立展示区：完整热榜/RSS，不受关键词过滤（true=显示, false=隐藏）
+    standalone: false                 # 独立展示区：已关闭（不再全量展示、不再出现「📋 独立展示区」区块）
     ai_analysis: true                 # AI 分析区域（true=显示, false=隐藏）
 
   # 独立展示区：将指定平台/RSS 完整展示，不受关键词过滤
