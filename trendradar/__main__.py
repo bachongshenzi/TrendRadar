@@ -15,7 +15,10 @@ from typing import Dict, List, Optional, Tuple
 from trendradar.context import AppContext
 from trendradar import __version__
 from trendradar.core import load_config
-from trendradar.core.analyzer import convert_keyword_stats_to_platform_stats
+from trendradar.core.analyzer import (
+    convert_keyword_stats_to_platform_stats,
+    merge_stats_by_group,
+)
 from trendradar.crawler import DataFetcher
 from trendradar.storage import convert_crawl_results_to_news_data
 from trendradar.utils.time import DEFAULT_TIMEZONE, is_within_days, calculate_days_old
@@ -86,6 +89,8 @@ class NewsAnalyzer:
         self._rss_total_count = 0
         self._rss_matched_count = 0
         self._hotlist_total_count = 0
+        # RSS 是否已并入热榜分组（合并后 rss_items 被置空，据此区分统计口径）
+        self._rss_merged_into_hotlist = False
 
         # 初始化存储管理器（使用 AppContext）
         self._init_storage_manager()
@@ -715,6 +720,35 @@ class NewsAnalyzer:
                 self.ctx.rank_threshold,
             )
 
+        # === RSS 内容并入热榜分组（不再单独成区）===
+        # 前提：display_mode=keyword（按关键词分组）。platform 模式下分组维度是平台，
+        # RSS 无平台归属，保持独立区块更合理。
+        # 合并发生在 AI 分析与翻译之前，下游直接消费统一后的 stats，无需再区分通道。
+        merge_rss_into_hotlist = self.ctx.config.get("DISPLAY", {}).get("MERGE_RSS_INTO_HOTLIST", False)
+        if merge_rss_into_hotlist and self.ctx.display_mode == "keyword" and rss_items:
+            # 分组上限映射：词表里每个组的 @N（如 [中国政经] @16）
+            # 合并会让两组条目叠加，必须按原上限重新裁剪，否则单组会膨胀数倍
+            group_limits = {
+                (g.get("display_name") or g.get("group_key")): g.get("max_count", 0)
+                for g in word_groups
+            }
+            # 合并前记下 RSS 归入各分组的原始条数，供推送头部统计使用
+            # （合并后 rss_items 会被置空，若沿用原计数口径会显示成 0/0）
+            rss_matched_before_merge = sum(stat.get("count", 0) for stat in rss_items)
+            merged_stats = merge_stats_by_group(
+                stats,
+                rss_items,
+                max_news_per_group=self.ctx.config.get("MAX_NEWS_PER_KEYWORD", 0),
+                sort_by_position_first=self.ctx.config.get("SORT_BY_POSITION_FIRST", False),
+                group_limits=group_limits,
+            )
+            if merged_stats:
+                stats = merged_stats
+                # 已并入热榜，置空以防下游再渲染出独立 RSS 区块
+                rss_items, rss_new_items = None, None
+                self._rss_matched_count = rss_matched_before_merge
+                self._rss_merged_into_hotlist = True
+
         # AI 分析（如果启用，用于 HTML 报告）
         ai_result = None
         ai_config = self.ctx.config.get("AI_ANALYSIS", {})
@@ -755,7 +789,11 @@ class NewsAnalyzer:
                 return translated_rd
 
         # 计算 RSS 匹配条数（供 HTML 和推送共用）
-        self._rss_matched_count = sum(stat.get("count", 0) for stat in rss_items) if rss_items else 0
+        # 合并模式下 rss_items 已置空，此处的 0 会覆盖上面记下的真实计数，需跳过
+        if rss_items:
+            self._rss_matched_count = sum(stat.get("count", 0) for stat in rss_items)
+        elif not merge_rss_into_hotlist:
+            self._rss_matched_count = 0
 
         # HTML生成（如果启用）— 使用翻译后的数据
         html_file = None
@@ -825,11 +863,17 @@ class NewsAnalyzer:
         ):
             # 输出推送内容统计
             content_parts = []
-            if news_count > 0:
-                content_parts.append(f"热榜 {news_count} 条")
-            if rss_count > 0:
-                content_parts.append(f"RSS {rss_count} 条")
-            total_count = news_count + rss_count
+            if self._rss_merged_into_hotlist:
+                # RSS 已并入热榜分组，stats 中已含 RSS 条目，分开标注会重复计数
+                if news_count > 0:
+                    content_parts.append(f"关键词分组 {news_count} 条（含 RSS）")
+                total_count = news_count
+            else:
+                if news_count > 0:
+                    content_parts.append(f"热榜 {news_count} 条")
+                if rss_count > 0:
+                    content_parts.append(f"RSS {rss_count} 条")
+                total_count = news_count + rss_count
             print(f"[推送] 准备发送：{' + '.join(content_parts)}，合计 {total_count} 条")
 
             # 调度系统决策

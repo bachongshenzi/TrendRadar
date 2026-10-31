@@ -748,6 +748,121 @@ def count_rss_frequency(
     return stats, total_items
 
 
+def merge_stats_by_group(
+    hotlist_stats: List[Dict],
+    rss_stats: Optional[List[Dict]],
+    max_news_per_group: int = 0,
+    sort_by_position_first: bool = False,
+    group_limits: Optional[Dict[str, int]] = None,
+) -> List[Dict]:
+    """
+    将 RSS 关键词统计合并进热榜关键词统计，按分组名（word）合并，不再区分数据来源通道
+
+    合并后每个分组同时包含热榜条目与 RSS 条目，条目通过 source_name 标明来源，
+    推送与网页报告中不再出现独立的「RSS 订阅」区块。
+
+    Args:
+        hotlist_stats: 热榜分组统计（word/count/position/titles/percentage/is_fallback_group）
+        rss_stats: RSS 分组统计（结构同上），为空则原样返回热榜统计
+        max_news_per_group: 合并后每个分组最多保留条数（0=不限制）
+            注意：合并后条目变多，传入 0 时保留热榜与 RSS 各自已有的裁剪结果
+        sort_by_position_first: 排序优先级（与热榜一致）
+            True = 先按配置位置再按条数；False = 先按条数再按配置位置
+        group_limits: 分组名 → 该组条数上限（来自词表的 @N），优先于 max_news_per_group
+            合并会让两组条目叠加，若不重新裁剪，单组会膨胀到原上限的数倍
+
+    Returns:
+        合并后的分组统计列表，保持原有排序规则（兜底组沉底 → 条数 → 配置位置）
+    """
+    if not rss_stats:
+        return hotlist_stats or []
+
+    group_limits = group_limits or {}
+
+    # 以 hotlist 的顺序建立索引，保证配置位置与排序语义不丢
+    merged: Dict[str, Dict] = {}
+    order: List[str] = []
+
+    def _ensure(stat: Dict) -> Dict:
+        word = stat.get("word", "")
+        if word not in merged:
+            merged[word] = {
+                "word": word,
+                "count": 0,
+                "position": stat.get("position", 999),
+                "titles": [],
+                "percentage": 0.0,
+                "is_fallback_group": stat.get("is_fallback_group", False),
+            }
+            order.append(word)
+        return merged[word]
+
+    # 1. 先放热榜条目（保持其优先级与权重的既有顺序）
+    for stat in hotlist_stats or []:
+        bucket = _ensure(stat)
+        bucket["titles"].extend(stat.get("titles", []))
+
+    # 2. 再并入 RSS 条目，按 URL/标题去重，避免同一篇稿件的热榜与 RSS 版本重复出现
+    hotlist_keys = set()
+    for stat in hotlist_stats or []:
+        for title_data in stat.get("titles", []):
+            key = title_data.get("url") or title_data.get("title", "")
+            if key:
+                hotlist_keys.add(key)
+
+    for stat in rss_stats:
+        bucket = _ensure(stat)
+        for title_data in stat.get("titles", []):
+            key = title_data.get("url") or title_data.get("title", "")
+            if key and key in hotlist_keys:
+                continue
+            if key:
+                hotlist_keys.add(key)
+            bucket["titles"].append(title_data)
+        # 兜底组标记：任一侧是兜底组即视为兜底组
+        if stat.get("is_fallback_group"):
+            bucket["is_fallback_group"] = True
+
+    # 3. 重算 count 与百分比，并按需裁剪
+    result: List[Dict] = []
+    total = 0
+    for word in order:
+        bucket = merged[word]
+        titles = bucket["titles"]
+
+        # 裁剪优先级：分组显式配置 @N > 全局 max_news_per_group
+        # 注意用 in 判断而非 or，否则 @0（显式表示不限制）会被误判为"未配置"而回退到全局值
+        if word in group_limits:
+            limit = group_limits[word]
+        else:
+            limit = max_news_per_group or 0
+        if limit > 0:
+            titles = titles[:limit]
+
+        bucket["titles"] = titles
+        bucket["count"] = len(titles)
+        total += bucket["count"]
+        result.append(bucket)
+
+    for stat in result:
+        stat["percentage"] = round(stat["count"] / total * 100, 2) if total > 0 else 0.0
+
+    # 移除空组（例如 RSS 命中了但热榜没有、且被裁空的极端情况）
+    result = [s for s in result if s["count"] > 0]
+
+    # 4. 恢复排序：兜底组沉底 → 条数降序（或配置位置优先）
+    if sort_by_position_first:
+        result.sort(
+            key=lambda x: (x.get("is_fallback_group", False), x["position"], -x["count"])
+        )
+    else:
+        result.sort(
+            key=lambda x: (x.get("is_fallback_group", False), -x["count"], x["position"])
+        )
+
+    return result
+
+
 def convert_keyword_stats_to_platform_stats(
     keyword_stats: List[Dict],
     weight_config: Dict,

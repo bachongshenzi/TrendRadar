@@ -241,6 +241,10 @@ def _load_display_config(config_data: Dict) -> Dict:
             "STANDALONE": regions.get("standalone", False),
             "AI_ANALYSIS": regions.get("ai_analysis", True),
         },
+        # RSS 内容是否并入热榜关键词分组
+        # true = RSS 条目直接归入对应的关键词分组，推送/网页中不再出现独立的「RSS 订阅」区块
+        # false = 保持原样，RSS 作为独立区块展示
+        "MERGE_RSS_INTO_HOTLIST": display.get("merge_rss_into_hotlist", False),
         # 独立展示区配置
         "STANDALONE": {
             "PLATFORMS": standalone.get("platforms", []),

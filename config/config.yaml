@@ -81,17 +81,32 @@ platforms:
       name: "靠谱新闻"
     - id: "tencent-hot"
       name: "腾讯新闻 综合早报"
-      #=== 财经投资类（只留快讯/电报，评论型栏目已剔除）===
+      #=== 财经投资类（只留快讯/电报/深度，评论型栏目已剔除）===
     - id: "wallstreetcn-quick"
       name: "华尔街见闻 快讯"
     - id: "wallstreetcn-news"
       name: "华尔街见闻 最新"
+    - id: "wallstreetcn-hot"
+      name: "华尔街见闻 最热"
+      expected_domain: "wallstreetcn.com"
     - id: "cls-telegraph"
       name: "财联社 电报"
+    - id: "cls-depth"
+      name: "财联社 深度"
+      expected_domain: "cls.cn"
+    - id: "cls-hot"
+      name: "财联社 热门"
+      expected_domain: "cls.cn"
     - id: "fastbull-express"
       name: "法布财经 快讯"
+    - id: "fastbull-news"
+      name: "法布财经 头条"
+      expected_domain: "fastbull.com"
     - id: "jin10"
       name: "金十数据"
+    - id: "gelonghui"
+      name: "格隆汇 事件"
+      expected_domain: "gelonghui.com"
       #=== 科技类平台（只留产品硬新闻与技术资讯）===
     - id: "ithome"
       name: "IT之家"
@@ -101,8 +116,6 @@ platforms:
       name: "Solidot"
     - id: "hackernews"
       name: "Hacker News"
-    - id: "github"
-      name: "GitHub"
 
 # ===============================================================
 # 3. 数据源 - RSS 订阅
@@ -277,6 +290,14 @@ ai_filter:
 # 统一管理推送消息中显示哪些区域及其排列顺序
 # ===============================================================
 display:
+  # === RSS 内容归类开关（核心）===
+  # true  = RSS 条目按关键词归入对应分组，与热榜条目混排，推送/网页中【不再出现独立的 RSS 区块】
+  #         每个条目仍带来源名（如「中新网 财经」），能看出出处，但不再按源分栏
+  # false = 保持原样，RSS 作为独立区块「📰 RSS 订阅统计」展示
+  # 注意：仅在 display_mode=keyword（按关键词分组）时生效；
+  #       display_mode=platform（按平台分组）下 RSS 无平台归属，仍走独立区块。
+  merge_rss_into_hotlist: true
+
   # 区域显示顺序（从上到下 = 推送中从上到下）
   # 调整顺序：剪切粘贴整行即可
   # 要显示某个区域，需同时：1. 在此列表中  2. 下方 regions 对应开关为 true
@@ -293,19 +314,22 @@ display:
     new_items: false                  # 新增热点区域：含热榜新增 + RSS 新增（true=显示, false=隐藏）
                                       # 注：热点词汇统计中的新增标记🆕不受此配置影响
 
-    rss: true                         # RSS 订阅区域（true=显示并分析, false=隐藏并跳过分析）
+    rss: true                         # RSS 抓取与关键词归类开关（true=抓取并归类到各分组）
+                                      # 注：merge_rss_into_hotlist=true 时，本项不再产生独立区块，
+                                      #     但仍需为 true，否则 RSS 不会被抓取、也就无从归类
     standalone: false                 # 独立展示区：已关闭（不再全量展示、不再出现「📋 独立展示区」区块）
     ai_analysis: true                 # AI 分析区域（true=显示, false=隐藏）
 
   # 独立展示区：将指定平台/RSS 完整展示，不受关键词过滤
   # 推送展示由 regions.standalone 控制，AI 分析由 ai_analysis.include_standalone 控制
+  #
+  # ⚠️ 已清空：开启 merge_rss_into_hotlist 后，RSS 全部走关键词归类，
+  #    不再需要「绕过过滤、全量堆出」的独立展示区。
+  #    若把源留在这里，同一批内容会既进关键词分组、又以全量形式重复出现在 AI 分析里。
   standalone:
-    platforms: ["thepaper"]            # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
-    rss_feeds: ["chinanews-china", "chinanews-importnews", "chinanews-finance", "chinanews-world", "bloomberg-markets", "bloomberg-economics", "bloomberg-politics"]
-                                       # 中新网 4 个官方频道：时政/要闻/财经/国际
-                                       # 彭博社 3 个频道：市场/经济/政治（英文原题）
-                                       # 进这里的源会绕过关键词过滤全量展示
-    max_items: 12                                # 每个源最多展示条数（0=不限制）
+    platforms: []                      # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
+    rss_feeds: []                      # 留空 = 不启用独立展示区内容
+    max_items: 12                      # 每个源最多展示条数（0=不限制）
 
 
 # ===============================================================
@@ -482,8 +506,10 @@ ai_analysis:
   max_news_for_analysis: 150        # 参与分析的新闻数量上限（控制 token 成本的关键项）
                                     # 热榜优先占用配额，RSS 用剩余配额，独立展示区不受此限制
 
-  include_rss: false                # 是否包含 RSS 内容进行分析（true=包含, false=不包含）
-  include_standalone: true          # 是否纳入独立展示区数据（true=纳入, false=不纳入）
+  include_rss: false                # 是否额外纳入独立的 RSS 区块（merge_rss_into_hotlist=true 时
+                                    # RSS 已并入热榜分组，会随热榜一起进入分析，此项保持 false 即可，
+                                    # 否则同一批内容会被重复喂给 AI）
+  include_standalone: false         # 是否纳入独立展示区数据（独立展示区已清空，保持 false）
 
   include_rank_timeline: true       # 排名时间线详细程度
                                     # true = 完整轨迹（如 1(09:30)→2(10:00)），AI 分析更准但多耗 0.5~1 倍 token
