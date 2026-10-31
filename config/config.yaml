@@ -95,6 +95,8 @@ platforms:
       #=== 科技类平台（只留产品硬新闻与技术资讯）===
     - id: "ithome"
       name: "IT之家"
+    - id: "aihot"
+      name: "AIHOT AI快讯"
     - id: "solidot"
       name: "Solidot"
     - id: "hackernews"
@@ -130,6 +132,39 @@ rss:
     - id: "hacker-news"
       name: "Hacker News"
       url: "https://hnrss.org/frontpage"
+
+    # 中新网官方 RSS：纯事实播报（政策/数据/事件），无评论无自媒体
+    # 重要：以下 4 个源已加入 display.standalone.rss_feeds，内容绕过关键词过滤全量展示，
+    #       关键词只用于 AI 分析和分组归类。因此「中新网 时政/要闻」不需要再堆关键词。
+    - id: "chinanews-finance"
+      name: "中新网 财经"
+      url: "https://www.chinanews.com.cn/rss/finance.xml"
+
+    - id: "chinanews-world"
+      name: "中新网 国际"
+      url: "https://www.chinanews.com.cn/rss/world.xml"
+
+    - id: "chinanews-china"
+      name: "中新网 时政"
+      url: "https://www.chinanews.com.cn/rss/china.xml"
+
+    - id: "chinanews-importnews"
+      name: "中新网 要闻"
+      url: "https://www.chinanews.com.cn/rss/importnews.xml"
+
+    # 彭博社官方 RSS（每个频道最多返回最新 20 条，英文原题）
+    # ⚠️ 路透社无官方 RSS（2020-06 起停用），如需路透只能走 Google News 代理
+    - id: "bloomberg-markets"
+      name: "彭博社 市场"
+      url: "https://www.bloomberg.com/feeds/markets/news.rss"
+
+    - id: "bloomberg-economics"
+      name: "彭博社 经济"
+      url: "https://www.bloomberg.com/feeds/economics/news.rss"
+
+    - id: "bloomberg-politics"
+      name: "彭博社 政治"
+      url: "https://www.bloomberg.com/feeds/politics/news.rss"
 
     - id: "ruanyifeng"
       name: "阮一峰的网络日志"
@@ -239,15 +274,18 @@ display:
                                       # 注：热点词汇统计中的新增标记🆕不受此配置影响
 
     rss: true                         # RSS 订阅区域（true=显示并分析, false=隐藏并跳过分析）
-    standalone: false                 # 独立展示区：完整热榜/RSS，不受关键词过滤（true=显示, false=隐藏）
+    standalone: true                  # 独立展示区：完整热榜/RSS，不受关键词过滤（true=显示, false=隐藏）
     ai_analysis: true                 # AI 分析区域（true=显示, false=隐藏）
 
   # 独立展示区：将指定平台/RSS 完整展示，不受关键词过滤
   # 推送展示由 regions.standalone 控制，AI 分析由 ai_analysis.include_standalone 控制
   standalone:
     platforms: ["thepaper"]            # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
-    rss_feeds: []                                # RSS 源 ID 列表（如 ["hacker-news"]）
-    max_items: 20                                # 每个源最多展示条数（0=不限制）
+    rss_feeds: ["chinanews-china", "chinanews-importnews", "chinanews-finance", "chinanews-world", "bloomberg-markets", "bloomberg-economics", "bloomberg-politics"]
+                                       # 中新网 4 个官方频道：时政/要闻/财经/国际
+                                       # 彭博社 3 个频道：市场/经济/政治（英文原题）
+                                       # 进这里的源会绕过关键词过滤全量展示
+    max_items: 12                                # 每个源最多展示条数（0=不限制）
 
 
 # ===============================================================
