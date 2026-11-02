@@ -473,8 +473,12 @@ def count_word_frequency(
             # 使用全局配置
             group_max_count = max_news_per_keyword
 
+        # 显示条数：默认等于命中总数，一旦有 @N 上限就同步截断，
+        # 否则推送里会出现「其他 169 条」但下面只列 15 条的自相矛盾。
+        displayed_count = data["count"]
         if group_max_count > 0:
             sorted_titles = sorted_titles[:group_max_count]
+            displayed_count = min(data["count"], group_max_count)
 
         # 优先使用 display_name，否则使用 group_key
         display_word = group_key_to_display_name.get(group_key) or group_key
@@ -482,7 +486,7 @@ def count_word_frequency(
         stats.append(
             {
                 "word": display_word,
-                "count": data["count"],
+                "count": displayed_count,
                 "position": group_key_to_position.get(group_key, 999),
                 "titles": sorted_titles,
                 "percentage": (
@@ -715,15 +719,19 @@ def count_rss_frequency(
         group_max_count = group_key_to_max_count.get(group_key, 0)
         if group_max_count == 0:
             group_max_count = max_news_per_keyword
+        # 显示条数：默认等于命中总数，一旦有 @N 上限就同步截断，
+        # 否则推送里会出现「其他 169 条」但下面只列 15 条的自相矛盾。
+        displayed_count = data["count"]
         if group_max_count > 0:
             sorted_titles = sorted_titles[:group_max_count]
+            displayed_count = min(data["count"], group_max_count)
 
         # 优先使用 display_name，否则使用 group_key
         display_word = group_key_to_display_name.get(group_key) or group_key
 
         stats.append({
             "word": display_word,
-            "count": data["count"],
+            "count": displayed_count,
             "position": group_key_to_position.get(group_key, 999),
             "titles": sorted_titles,
             "percentage": round(data["count"] / total_items * 100, 2) if total_items > 0 else 0,

@@ -99,9 +99,8 @@ platforms:
       expected_domain: "cls.cn"
     - id: "fastbull-express"
       name: "法布财经 快讯"
-    - id: "fastbull-news"
-      name: "法布财经 头条"
-      expected_domain: "fastbull.com"
+      # fastbull-news（法布财经 头条）已于 2026-11-01 关闭：
+      # 该栏实测是「外汇点差/隔夜利息/止盈止损」类教学文，不是新闻
     - id: "jin10"
       name: "金十数据"
     - id: "gelonghui"
